@@ -44,6 +44,7 @@ jobs:
         shell: bash
         run: |
           # Build sample Python project
+          pip --disable-pip-version-check install build
           cd test-python-project
           python -m build
 

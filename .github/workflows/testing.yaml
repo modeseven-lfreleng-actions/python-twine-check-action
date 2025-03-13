@@ -50,6 +50,8 @@ jobs:
 
       - name: "Run Action: ${{ github.repository }}"
         uses: ./
+        with:
+          path: "test-python-project/dist"
 
       - name: "Validate: ${{ github.repository }}"
         shell: bash

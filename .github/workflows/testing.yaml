@@ -33,6 +33,13 @@ jobs:
           repository: "modeseven-lfreleng-actions/test-python-project"
           path: "test-python-project"
 
+      - name: "Setup Python"
+        # yamllint disable-line rule:line-length
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version-file: "pyproject.toml"
+          cache: "pip"
+
       - name: "Build sample Python project"
         shell: bash
         run: |

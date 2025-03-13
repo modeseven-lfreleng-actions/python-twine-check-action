@@ -1,0 +1,38 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
+
+# Action test/validation workflow
+name: "Test GitHub Action 🧪"
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+  pull_request:
+    types: [opened, reopened, edited, synchronize]
+
+permissions: {}
+
+jobs:
+  ### Test the GitHub Action in this Repository ###
+  tests:
+    name: "Action/Workflow Tests"
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      # Perform setup prior to running test(s)
+
+      - name: "Run Action: ${{ github.repository }}"
+        uses: ./action.yaml
+
+      - name: "Validate: ${{ github.repository }}"
+        shell: bash
+        run: |
+          # Validate local action
+          echo "Validating: ${{ github.repository }}"

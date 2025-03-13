@@ -33,11 +33,12 @@ jobs:
           repository: "modeseven-lfreleng-actions/test-python-project"
           path: "test-python-project"
 
-      - name: "Change directory to sample Python project"
+      - name: "Build sample Python project"
         shell: bash
         run: |
-          # Change directory to sample Python project
+          # Build sample Python project
           cd test-python-project
+          python -m build
 
       - name: "Run Action: ${{ github.repository }}"
         uses: ./

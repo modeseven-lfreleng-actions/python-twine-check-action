@@ -17,7 +17,7 @@ permissions: {}
 
 jobs:
   ### Test the GitHub Action in this Repository ###
-  test:
+  tests:
     name: "Action Testing"
     runs-on: ubuntu-24.04
     permissions:

@@ -27,6 +27,17 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       # Perform setup prior to running test(s)
+      - name: "Checkout repository"
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: "modeseven-lfreleng-actions/test-python-project"
+          path: "/tmp/test-python-project"
+
+      - name: "Change directory to sample Python project"
+        shell: bash
+        run: |
+          # Change directory to sample Python project
+          cd /tmp/test-python-project
 
       - name: "Run Action: ${{ github.repository }}"
         uses: ./

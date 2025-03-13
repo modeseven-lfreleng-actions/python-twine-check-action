@@ -11,14 +11,14 @@ on:
   push:
     branches: ["main"]
   pull_request:
-    types: [opened, reopened, edited, synchronize]
+    branches: ["main"]
 
 permissions: {}
 
 jobs:
   ### Test the GitHub Action in this Repository ###
   tests:
-    name: "Action/Workflow Tests"
+    name: "Action Testing"
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -29,7 +29,7 @@ jobs:
       # Perform setup prior to running test(s)
 
       - name: "Run Action: ${{ github.repository }}"
-        uses: ./action.yaml
+        uses: ./
 
       - name: "Validate: ${{ github.repository }}"
         shell: bash

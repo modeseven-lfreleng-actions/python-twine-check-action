@@ -2,38 +2,52 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2025 The Linux Foundation
 
-# actions-template
-name: "🛠️ Actions Template"
-description: "Description of action"
-# Any relevant notes/observations can go here
+# python-twine-check-action
+name: "📦 Verify Build Artefacts with Twine"
+description: "Verifies Python build artefacts prior to package publishing"
+# Call prior to package publishing to validate filenames/content
 
 inputs:
-  INPUT:
-    description: "Description of input"
+  PATH:
+    description: "Directory/folder containing Python build artefacts"
     required: false
     type: string
-    default: "input"
-
-outputs:
-  OUTPUT:
-    description: "Description of output"
-    value: ${{ steps.code.outputs.output }}
+    default: "dist"
 
 runs:
   using: "composite"
   steps:
-    - name: "Friendly Name"
-      id: code
+    - name: "Verify Python build artefacts with Twine"
       shell: bash
       run: |
-        # Friendly Name
-        INPUT="${{ inputs.input }}"
-        if [ -z "$INPUT" ]; then
-          echo "Error: mandatory input INPUT was not set/configured ❌"
+        # Verify Python build artefacts with Twine
+        ARTEFACT_PATH="${{ inputs.path }}"
+        if [ -z "$ARTEFACT_PATH" ]; then
+          echo "Error: mandatory input PATH was not set/configured ❌"
           exit 1
         fi
 
-        echo "output=$INPUT" >> "$GITHUB_ENV
-        echo "output=$INPUT" >> "$GITHUB_OUTPUT
-        echo "Action received a valid input: $INPUT ✅"
-        echo "Action received a valid input: $INPUT ✅" >> "$GITHUB_STEP_SUMMARY"
+        if (ls "$ARTEFACT_PATH"); then
+          ARTEFACTS=$(ls $ARTEFACT_PATH | wc -l)
+          if [ "$ARTEFACTS" -eq 0 ]; then
+            echo "Error: specified directory/path was empty ❌"
+            exit 1
+          else
+            echo "Files in specified directory/path: $ARTEFACTS"
+          fi
+        else
+          echo "Error: specified directory/path does not exist ❌"
+          exit 1
+        fi
+
+        echo "Installing: twine"
+        pip install --disable-pip-version-check -q --upgrade twine
+        echo "Running: twine check $ARTEFACT_PATH/*"
+        if (twine check $ARTEFACT_PATH/*); then
+          echo "Verified Python build artefacts with Twine ✅"
+          echo "Verified Python build artefacts with Twine ✅" \
+            >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "Python build artefacts failed Twine verification ❌"
+          exit 1
+        fi

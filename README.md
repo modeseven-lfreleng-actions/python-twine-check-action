@@ -3,23 +3,19 @@
 # SPDX-FileCopyrightText: 2025 The Linux Foundation
 -->
 
-# 🛠️ Template Action
+# 📦 Verify Build Artefacts with Twine
 
-This is a template for the other actions in this repository.
+Checks validity of Python build artefacts; call before package publishing.
 
-## actions-template
+## python-twine-check-action
 
 ## Usage Example
 
 <!-- markdownlint-disable MD046 -->
 
 ```yaml
-steps:
-  - name: "Action template"
-    id: action-template
-    uses: lfreleng-actions/actions-template@main
-    with:
-      input: "placeholder"
+  - name: "Verify Python build artefacts with Twine"
+    uses: lfreleng-actions/python-twine-check-action@main
 ```
 
 <!-- markdownlint-enable MD046 -->
@@ -28,22 +24,33 @@ steps:
 
 <!-- markdownlint-disable MD013 -->
 
-| Variable Name | Required | Description  |
-| ------------- | -------- | ------------ |
-| INPUT         | False    | Action input |
+| Variable Name | Description                    | Default |
+| ------------- | ------------------------------ | ------- |
+| PATH          | Path to Python build artefacts | dist    |
 
 <!-- markdownlint-enable MD013 -->
 
 ## Outputs
 
-<!-- markdownlint-disable MD013 -->
+This action has no outputs, but will exit with an error if artefact
+validation fails.
 
-| Variable Name | Description   |
-| ------------- | ------------- |
-| OUTPUT        | Action output |
+## Notes
 
-<!-- markdownlint-enable MD013 -->
+When calling this action separate from a build job, ensure build products are
+available by using upload/download artefacts.
 
-## Implementation Details
+## Action Output Example
 
-## Other Notes
+```console
+Run lfreleng-actions/python-twine-check-action@main
+Run # Verify Python build artefacts with Twine
+osc_github_devops-0.1.28.dev1-py3-none-any.whl
+osc_github_devops-0.1.28.dev1.tar.gz
+Files in specified directory/path: 2
+Installing: twine
+Running: twine check dist/*
+Checking dist/osc_github_devops-0.1.28.dev1-py3-none-any.whl: PASSED
+Checking dist/osc_github_devops-0.1.28.dev1.tar.gz: PASSED
+Verified Python build artefacts with Twine ✅
+```

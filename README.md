@@ -24,9 +24,10 @@ Checks validity of Python build artefacts; call before package publishing.
 
 <!-- markdownlint-disable MD013 -->
 
-| Variable Name | Description                    | Default |
-| ------------- | ------------------------------ | ------- |
-| PATH          | Path to Python build artefacts | dist    |
+| Variable Name | Required | Default | Description                           |
+| ------------- | -------- | ------- | ------------------------------------- |
+| PATH_PREFIX   | False    |         | Path/directory to Python project code |
+| PATH          | False    | dist    | Path to Python build artefacts        |
 
 <!-- markdownlint-enable MD013 -->
 

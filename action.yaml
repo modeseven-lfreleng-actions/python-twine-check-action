@@ -8,24 +8,44 @@ description: "Verifies Python build artefacts prior to package publishing"
 # Call prior to package publishing to validate filenames/content
 
 inputs:
+  # Optional
   PATH:
     description: "Directory/folder containing Python build artefacts"
     required: false
     type: string
     default: "dist"
+  PATH_PREFIX:
+    description: "Directory location containing project code"
+    type: string
+    required: false
 
 runs:
   using: "composite"
   steps:
+    - name: "Setup action/environment"
+      shell: bash
+      run: |
+        # Setup action/environment
+        # Handle path_prefix input consistently and when absent
+        path_prefix="${{ inputs.PATH_PREFIX }}"
+        if [ -z "$path_prefix" ]; then
+          # Set current directory as path prefix
+          path_prefix="."
+        else
+          # Strip any trailing slash in provided path
+          path_prefix="${path_prefix%/}"
+        fi
+        # Verify is a valid directory path
+        if [ ! -d "$path_prefix" ]; then
+          echo "Error: invalid path/prefix to project directory ❌"; exit 1
+        fi
+        echo "path_prefix=$path_prefix" >> "$GITHUB_ENV"
+
     - name: "Verify Python build artefacts with Twine"
       shell: bash
       run: |
         # Verify Python build artefacts with Twine
-        ARTEFACT_PATH="${{ inputs.path }}"
-        if [ -z "$ARTEFACT_PATH" ]; then
-          echo "Error: mandatory input PATH was not set/configured ❌"
-          exit 1
-        fi
+        ARTEFACT_PATH="${{ env.path_prefix }}/${{ inputs.path }}"
 
         if (ls "$ARTEFACT_PATH"); then
           ARTEFACTS=$(ls $ARTEFACT_PATH | wc -l)

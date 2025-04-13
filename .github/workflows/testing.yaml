@@ -51,3 +51,9 @@ jobs:
         uses: ./
         with:
           path: "test-python-project/dist"
+
+      - name: "Run Action: ${{ github.repository }} [PATH PREFIX]"
+        uses: ./
+        with:
+          path_prefix: "test-python-project"
+          path: "dist"

@@ -12,11 +12,11 @@ inputs:
   PATH:
     description: "Directory/folder containing Python build artefacts"
     required: false
-    type: string
+    # type: string
     default: "dist"
   PATH_PREFIX:
     description: "Directory location containing project code"
-    type: string
+    # type: string
     required: false
 
 runs:

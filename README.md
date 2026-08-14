@@ -49,9 +49,29 @@ Run # Verify Python build artefacts with Twine
 osc_github_devops-0.1.28.dev1-py3-none-any.whl
 osc_github_devops-0.1.28.dev1.tar.gz
 Files in specified directory/path: 2
-Installing: twine
-Running: twine check dist/*
+Using: twine==7.0.0
+Running: twine check on 2 artefact(s)
 Checking dist/osc_github_devops-0.1.28.dev1-py3-none-any.whl: PASSED
 Checking dist/osc_github_devops-0.1.28.dev1.tar.gz: PASSED
 Verified Python build artefacts with Twine ✅
 ```
+
+## Twine Version
+
+This action pins the twine version in `requirements/twine.txt` and runs
+it under `uvx`, which resolves it in an isolated, ephemeral environment
+and leaves the caller's Python environment untouched. The action
+installs `uv` itself, so callers need no setup.
+
+Keeping the pin current matters. Twine replaces the list of valid core
+metadata versions with its own hard-coded copy, so a stale twine starts
+rejecting otherwise valid distributions as soon as a build backend emits
+a metadata version it does not recognise. Hatchling 1.30 began emitting
+`Metadata-Version: 2.5`, which every twine before 7.0 refused.
+
+Because a stale pin is not a vulnerability, it raises no security alert.
+Two mechanisms cover that gap:
+
+- Dependabot proposes the bump weekly.
+- The `twine-release-monitor` workflow posts to Slack when the pinned
+  version falls behind the latest release on PyPI.

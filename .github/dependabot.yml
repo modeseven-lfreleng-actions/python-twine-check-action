@@ -17,3 +17,16 @@ updates:
       prefix: "Chore"
     cooldown:
       default-days: 7
+  # Keeps requirements/twine.txt current. A stale twine pin is not a
+  # vulnerability, so it raises no security alert; it simply starts
+  # rejecting valid distributions once a build backend emits a core
+  # metadata version that version of twine does not recognise. The
+  # twine-release-monitor workflow reports the same drift to Slack.
+  - package-ecosystem: "pip"
+    directory: "/requirements"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "Chore"
+    cooldown:
+      default-days: 7

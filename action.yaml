@@ -53,6 +53,19 @@ runs:
           printf '%s\n' "$delimiter"
         } >> "$GITHUB_OUTPUT"
 
+    - name: "Install uv"
+      # Provides uvx, used below to run the pinned twine in an
+      # isolated, ephemeral environment rather than installing it
+      # into the caller's Python environment.
+      #
+      # The uv version comes from a requirements file so Dependabot
+      # maintains it; pinning the action alone would still leave the
+      # uv binary floating.
+      # yamllint disable-line rule:line-length
+      uses: astral-sh/setup-uv@f98e06938123ccabd21905ea5d0069192241f9f1 # v8.3.1
+      with:
+        version-file: "${{ github.action_path }}/requirements/uv.txt"
+
     - name: "Verify Python build artefacts with Twine"
       shell: bash
       env:
@@ -82,12 +95,31 @@ runs:
         fi
         echo "Files in specified directory/path: ${#artefacts[@]}"
 
-        echo "Installing: twine"
-        pip install --disable-pip-version-check -q --upgrade twine
+        # Resolve the pinned twine requirement shipped alongside this
+        # action. GITHUB_ACTION_PATH points at the action's own
+        # checkout rather than the calling repository, so the pin
+        # travels with the action and callers cannot influence it.
+        requirements_file="$GITHUB_ACTION_PATH/requirements/twine.txt"
+        if [ ! -f "$requirements_file" ]; then
+          echo "Error: twine requirements file not found ❌"
+          echo "Expected at: $requirements_file"
+          exit 1
+        fi
+        # Take the first line that is neither blank nor a comment.
+        twine_requirement="$(grep -vE '^[[:space:]]*(#|$)' \
+          "$requirements_file" | head -n 1)"
+        if [ -z "$twine_requirement" ]; then
+          echo "Error: no twine requirement found in file ❌"
+          echo "Searched in: $requirements_file"
+          exit 1
+        fi
+
+        echo "Using: $twine_requirement"
         echo "Running: twine check on ${#artefacts[@]} artefact(s)"
         # Terminate option parsing with -- so an artefact name beginning
         # with a dash cannot be interpreted as a twine option.
-        if twine check -- "${artefacts[@]}"; then
+        if uvx --from "$twine_requirement" \
+          twine check -- "${artefacts[@]}"; then
           echo "Verified Python build artefacts with Twine ✅"
           echo "Verified Python build artefacts with Twine ✅" \
             >> "$GITHUB_STEP_SUMMARY"

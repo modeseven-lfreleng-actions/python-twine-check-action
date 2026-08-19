@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+# Pinned uv version used to run twine.
+#
+# Kept in a requirements file, rather than inline in the action, so
+# Dependabot maintains it alongside the twine pin. setup-uv reads the
+# version from this file via its version-file input.
+#
+# Pinning uv matters for the same reason as pinning twine: without it
+# the runner resolves whatever uv is current, so the tool executing the
+# checks changes without review.
+uv==0.12.4

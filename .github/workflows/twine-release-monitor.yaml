@@ -1,0 +1,203 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+# Reports when the pinned twine version falls behind the latest
+# release published to PyPI.
+#
+# A stale twine pin is not a vulnerability, so it produces no security
+# alert, yet it silently breaks this action: twine replaces the list of
+# valid core metadata versions with its own hard-coded copy, and starts
+# rejecting valid distributions as soon as a build backend emits a
+# metadata version it does not know about. Dependabot proposes the bump;
+# this workflow makes the drift visible in Slack if that PR is missed.
+name: "Twine Release Monitor 🔔"
+
+# yamllint disable-line rule:truthy
+on:
+  schedule:
+    # Daily; twine releases are infrequent, so this is silent almost
+    # always and only speaks up while the pin is behind.
+    - cron: "17 7 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: "twine-release-monitor-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  check-twine-release:
+    name: "Check Twine Release"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # read the pinned requirement from the repository
+    timeout-minutes: 5
+    steps:
+      # Harden the runner used by this workflow
+      # yamllint disable-line rule:line-length
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: "audit"
+
+      - name: "Checkout repository"
+        # yamllint disable-line rule:line-length
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: "Compare pinned twine against latest release"
+        id: compare
+        shell: bash
+        run: |
+          # Compare pinned twine against latest release
+          python3 <<'PYEOF'
+          import json
+          import os
+          import urllib.request
+
+          pinned = ""
+          with open("requirements/twine.txt", encoding="utf-8") as handle:
+              for line in handle:
+                  entry = line.strip()
+                  if entry and not entry.startswith("#"):
+                      pinned = entry.split("==", 1)[-1].strip()
+                      break
+
+          if not pinned:
+              raise SystemExit("No twine requirement found to compare")
+
+          request = urllib.request.Request(
+              "https://pypi.org/pypi/twine/json",
+              headers={"Accept": "application/json"},
+          )
+          with urllib.request.urlopen(request, timeout=30) as response:
+              latest = json.load(response)["info"]["version"]
+
+          try:
+              from packaging.version import InvalidVersion, Version
+          except ImportError:  # pragma: no cover - runner without packaging
+              Version = None
+
+
+          def is_behind(current, newest):
+              """Report whether the pin trails the newest release.
+
+              A real version comparison avoids treating a pin that is
+              merely different as behind, which plain inequality would
+              do for a post-release, or if the newest release were
+              yanked and the index moved backwards. Inequality remains
+              the fallback so drift is still reported when the
+              comparison is unavailable.
+              """
+              if Version is not None:
+                  try:
+                      return Version(current) < Version(newest)
+                  except InvalidVersion:
+                      pass
+              return current != newest
+
+
+          outdated = "true" if is_behind(pinned, latest) else "false"
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write(f"pinned={pinned}\n")
+              out.write(f"latest={latest}\n")
+              out.write(f"outdated={outdated}\n")
+
+          print(f"pinned twine: {pinned}")
+          print(f"latest twine: {latest}")
+          print(f"outdated: {outdated}")
+          PYEOF
+
+      - name: "Report status to job summary"
+        shell: bash
+        env:
+          PINNED: ${{ steps.compare.outputs.pinned }}
+          LATEST: ${{ steps.compare.outputs.latest }}
+          OUTDATED: ${{ steps.compare.outputs.outdated }}
+        run: |
+          # Report status to job summary
+          if [ "$OUTDATED" = "true" ]; then
+            {
+              echo "### ⚠️ Pinned twine is behind the latest release"
+              echo
+              echo "- Pinned: \`$PINNED\`"
+              echo "- Latest: \`$LATEST\`"
+              echo
+              echo "Update \`requirements/twine.txt\`."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "### ✅ Pinned twine is current"
+              echo
+              echo "- Pinned: \`$PINNED\`"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # The two steps below reference SLACK_BOT_TOKEN directly rather
+      # than through a dedicated GitHub Environment, which the audit
+      # flags as secrets-outside-env. A deployment environment is not a
+      # good fit here: this job only reads a version number and posts a
+      # message, and if the environment ever gained a required-reviewer
+      # rule the scheduled run would silently stall, which is exactly
+      # the invisible-staleness failure this workflow exists to catch.
+      # The token is an organisation secret already scoped by policy,
+      # and the same pattern is used by project-reporting-tool.
+      - name: "Check Slack configuration"
+        id: check-slack-config
+        if: steps.compare.outputs.outdated == 'true'
+        shell: bash
+        env:
+          # yamllint disable-line rule:line-length
+          SLACK_BOT_TOKEN: "${{ secrets.SLACK_BOT_TOKEN }}" # zizmor: ignore[secrets-outside-env]
+        run: |
+          # Check Slack configuration
+          if [ -n "$SLACK_BOT_TOKEN" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "Slack token unavailable; skipping notification"
+          fi
+
+      - name: "Send Slack notification"
+        if: >-
+          steps.compare.outputs.outdated == 'true'
+          && steps.check-slack-config.outputs.configured == 'true'
+          && vars.SLACK_CHANNEL_ID != ''
+        # yamllint disable-line rule:line-length
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+        with:
+          method: "chat.postMessage"
+          # yamllint disable-line rule:line-length
+          token: "${{ secrets.SLACK_BOT_TOKEN }}" # zizmor: ignore[secrets-outside-env]
+          # yamllint disable rule:line-length
+          payload: |
+            channel: "${{ vars.SLACK_CHANNEL_ID }}"
+            text: "📦 New twine release available: ${{ steps.compare.outputs.latest }}"
+            blocks:
+              - type: "header"
+                text:
+                  type: "plain_text"
+                  text: "📦 New twine release available"
+              - type: "section"
+                text:
+                  type: "mrkdwn"
+                  text: "*${{ github.repository }}* pins a twine version that is now behind the latest release on PyPI."
+              - type: "section"
+                fields:
+                  - type: "mrkdwn"
+                    text: "*Pinned:* ${{ steps.compare.outputs.pinned }}"
+                  - type: "mrkdwn"
+                    text: "*Latest:* ${{ steps.compare.outputs.latest }}"
+              - type: "section"
+                text:
+                  type: "mrkdwn"
+                  text: "A stale pin makes this action reject valid distributions once a build backend emits a core metadata version the pinned twine does not recognise. Merge the Dependabot bump for `requirements/twine.txt`."
+              - type: "section"
+                text:
+                  type: "mrkdwn"
+                  text: "<https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run> · <https://pypi.org/project/twine/${{ steps.compare.outputs.latest }}/|View release>"
+          # yamllint enable rule:line-length
+...

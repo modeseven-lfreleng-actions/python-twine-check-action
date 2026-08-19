@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+# Pinned twine version used by this action.
+#
+# Dependabot manages this pin; see .github/dependabot.yml. The
+# twine-release-monitor workflow also posts to Slack when a newer
+# release appears, because a stale pin here is not visible as a
+# vulnerability and therefore raises no security alert.
+#
+# Keeping this current matters more than it looks. twine replaces the
+# list of valid core metadata versions with its own hard-coded copy,
+# so a stale twine rejects otherwise valid distributions as soon as a
+# build backend starts emitting a metadata version it does not know
+# about. Hatchling 1.30 began emitting Metadata-Version 2.5, which
+# every twine before 7.0 refused.
+twine==7.0.0

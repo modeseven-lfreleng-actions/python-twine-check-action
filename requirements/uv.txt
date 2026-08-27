@@ -10,4 +10,4 @@
 # Pinning uv matters for the same reason as pinning twine: without it
 # the runner resolves whatever uv is current, so the tool executing the
 # checks changes without review.
-uv==0.12.4
+uv==0.12.5
